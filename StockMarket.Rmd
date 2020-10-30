@@ -129,7 +129,6 @@ cor(shares$Vol., shares$Change..)
 
 ```{r}
 cor(shares [,2:6])
-#ggcorrplot(shares)
 ```
 ```{r}
 View(shares)
@@ -142,7 +141,6 @@ plot.ts(shares1)
 
 ```{r}
 shares2 <- ts(shares$Price, start = c(2020, 1), end = c(2020, 12), frequency = 365)
-#View((shares2))
 plot.ts(shares2)
 ```
 ```{r}
