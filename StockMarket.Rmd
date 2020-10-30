@@ -1,0 +1,189 @@
+```{r}
+library(lime)
+library(arules)
+library(xgboost)
+library(ROSE)
+library(pROC)
+library(randomForest)
+library(gridExtra)
+library(corrr)
+library(GGally)
+library(fastDummies)
+library(rpart)
+library(cvAUC)
+library(dummies)
+library(colorspace)
+library(caret)
+library("e1071")
+library(datasets)
+library(ggcorrplot)
+```
+
+```{r}
+library(ggplot2)
+library(recipes)
+library(caret)
+library(dplyr)
+library(outliers)
+library(cluster)
+```
+
+```{r}
+shares <- read.csv(file.choose(), header = T)
+shares$Date <- as.Date(shares$Date, format = "%b %d, %Y", abbreviate = TRUE)
+str(shares)
+View(shares)
+```
+#The dataset contains 2150 observations from 7 variables. The next step is to check for the missing values and prepare the dataset for further treatment
+#The data variable will be displayed as Date Format which can be used for the plot
+
+```
+shares$Date <- as.Date(shares$Date, format =  "%b %d, %Y", abbreviate =TRUE)
+str(shares)
+```
+#Convert the variables to factor
+```{r}
+shares$Open <- as.factor(shares$Open)
+str(shares)
+```
+
+```{r}
+shares$Price <- as.factor(shares$Price)
+str(shares)
+```
+```{r}
+shares$High <- as.factor(shares$High)
+str(shares)
+```
+```{r}
+shares$Low <- as.factor(shares$Low)
+str(shares)
+```
+```{r}
+shares$Vol. <- as.factor(shares$Vol.)
+str(shares)
+```
+```{r}
+shares$Change.. <- as.factor(shares$Change..)
+str(shares)
+```
+
+```{r}
+shares$Price <- as.numeric(shares$Price)
+str(shares)
+```
+
+```{r}
+shares$Low <- as.numeric(shares$Low)
+str(shares)
+```
+
+```{r}
+shares$High <- as.numeric(shares$High)
+str(shares)
+```
+
+```{r}
+shares$Open <- as.numeric(shares$Open)
+str(shares)
+```
+
+```{r}
+shares$Vol. <- as.numeric(shares$Vol.)
+str(shares)
+```
+
+```{r}
+shares$Change.. <- as.numeric(shares$Change..)
+str(shares)
+```
+
+#Now that the variables have been converted from character to factor, a summary statistiocs will be carried out to further confirm that
+```{r}
+summary(shares)
+```
+```{r}
+sum(is.na(shares$Date))
+```
+#The summary statistics above is to verify if the dataset has been successfully cleaned. The next step is to check for the correlation
+
+```{r}
+cor(shares$Price, shares$Open)
+```
+
+```{r}
+cor(shares$Price, shares$High)
+```
+
+```{r}
+cor(shares$Price, shares$Low)
+```
+```{r}
+cor(shares$Price, shares$Vol.)
+```
+
+```{r}
+cor(shares$Vol., shares$Change..)
+```
+
+
+```{r}
+cor(shares [,2:6])
+#ggcorrplot(shares)
+```
+```{r}
+View(shares)
+```
+
+```{r}
+shares1 <- ts(shares$Price, frequency = 12) #start = 2020-10-06, end = 2012-01-06, frequency = 365)
+plot.ts(shares1)
+```
+
+```{r}
+shares2 <- ts(shares$Price, start = c(2020, 1), end = c(2020, 12), frequency = 365)
+#View((shares2))
+plot.ts(shares2)
+```
+```{r}
+shares1Ts <- shares1
+decomposedRes <- decompose(shares1Ts)
+plot(decomposedRes)
+
+stlRes <- stl(shares1, s.window = "periodic")
+```
+
+```{r}
+shares2Ts <- shares1
+decomposedRes1 <- decompose(shares2Ts, type="additive")
+plot(decomposedRes1)
+```
+
+```{r}
+library("fUnitRoots")
+urkpssTest(shares1, type = c("tau"), lags = c("short"),use.lag = NULL, doplot = TRUE)
+tsstationary = diff(shares1, differences=1)
+plot(tsstationary)
+```
+
+```{r}
+acfShares <- acf(shares1)
+```
+```{r}
+acf(tsstationary, lag.max=34)
+pacf(tsstationary, lag.max=34)
+```
+
+```{r}
+View(shares1)
+```
+
+
+
+
+
+
+
+
+
+
