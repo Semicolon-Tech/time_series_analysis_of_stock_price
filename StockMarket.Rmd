@@ -135,14 +135,21 @@ View(shares)
 ```
 
 ```{r}
-shares1 <- ts(shares$Price, frequency = 12) #start = 2020-10-06, end = 2012-01-06, frequency = 365)
+# for daily observation
+shares1 <- ts(shares$Price, frequency = 365, start = 2012, end = 2021)
 plot.ts(shares1)
+
 ```
 
+
+
 ```{r}
-shares2 <- ts(shares$Price, start = c(2020, 1), end = c(2020, 12), frequency = 365)
+# for monthly average
+shares2 <- ts(shares$Price, frequency = 12, start = 2012, end = 2021)
 plot.ts(shares2)
+
 ```
+
 ```{r}
 shares1Ts <- shares1
 decomposedRes <- decompose(shares1Ts)
@@ -156,7 +163,7 @@ shares2Ts <- shares1
 decomposedRes1 <- decompose(shares2Ts, type="additive")
 plot(decomposedRes1)
 ```
-
+differencing approaach removes the linaer trend 
 ```{r}
 library("fUnitRoots")
 urkpssTest(shares1, type = c("tau"), lags = c("short"),use.lag = NULL, doplot = TRUE)
@@ -167,38 +174,58 @@ plot(tsstationary)
 ```{r}
 acfShares <- acf(shares1)
 ```
+
+# runnuing an acf or pacf is to dertermine which model is best fit for the available dataset
+#Refrence url : https://datascienceplus.com/time-series-analysis-using-arima-model-in-r/#:~:text=arima()%20function%20in%20R,chosen%20by%20minimizing%20the%20AICc.
 ```{r}
 acf(tsstationary, lag.max=34)
 pacf(tsstationary, lag.max=34)
 ```
 
 ```{r}
-View(shares1)
+arima(shares1)
 ```
 
 ```{r}
-fitARIMA <- arima(shares1, order=c(1,1,1),seasonal = list(order = c(1,0,0), period = 12),method="ML")
-library(lmtest)
-coeftest(fitARIMA)
-```
-```{r}
-confint(fitARIMA)
-```
-```
 lag.length = 25
 Box.test(tsstationary, lag=lag.length, type="Ljung-Box")
 ```
 
 ```{r}
-acf(fitARIMA$residuals)
-library(FitAR)
-boxresult-LjungBoxTest (fitARIMA$residuals,k=2,StartLag=1)
-plot(boxresult[,3],main= "Ljung-Box Q Test", ylab= "P-values", xlab= "Lag")
-qqnorm(fitARIMA$residuals)
-qqline(fitARIMA$residuals)
+acf(diff(log(shares1)))
+```
+```{r}
+pacf(diff(log(shares1)))
+```
+
+```{r}
+fitARIMA <- arima(shares1, order=c(1,1,0))
+library(lmtest)
+coeftest(fitARIMA)
+```
+```
+The AR coeficient is statistically siginificant. This explains how the prices deviate from the mean price.
+The z-value can be used to decide if an hypothesis should be accepted or supported
+url:https://online.stat.psu.edu/stat510/book/export/html/665
 ```
 
 
+
+```
+Use the predict() function for predictions from the result of the model fitting functions. It takes an argument n.ahead() specifying how many time steps ahead to predict.
+Ref: https://datascienceplus.com/time-series-analysis-using-arima-model-in-r/#:~:text=arima()%20function%20in%20R,chosen%20by%20minimizing%20the%20AICc.
+```
+```{r}
+predict(fitARIMA,n.ahead = 5)
+```
+
+
+```{r}
+#Now we will use the forecast function to forecast for future values of the time series
+library(fpp3)
+#futurVal <- forecastML::train_model(fitARIMA,h=10, level=c(99.5))
+plot.forecast(futurVal)
+```
 
 
 
