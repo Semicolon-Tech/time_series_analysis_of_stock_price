@@ -176,6 +176,28 @@ pacf(tsstationary, lag.max=34)
 View(shares1)
 ```
 
+```{r}
+fitARIMA <- arima(shares1, order=c(1,1,1),seasonal = list(order = c(1,0,0), period = 12),method="ML")
+library(lmtest)
+coeftest(fitARIMA)
+```
+```{r}
+confint(fitARIMA)
+```
+```
+lag.length = 25
+Box.test(tsstationary, lag=lag.length, type="Ljung-Box")
+```
+
+```{r}
+acf(fitARIMA$residuals)
+library(FitAR)
+boxresult-LjungBoxTest (fitARIMA$residuals,k=2,StartLag=1)
+plot(boxresult[,3],main= "Ljung-Box Q Test", ylab= "P-values", xlab= "Lag")
+qqnorm(fitARIMA$residuals)
+qqline(fitARIMA$residuals)
+```
+
 
 
 
