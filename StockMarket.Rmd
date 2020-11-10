@@ -1,236 +1,154 @@
+---
+title: "stock"
+output: html_document
+---
 ```{r}
-library(lime)
-library(arules)
-library(xgboost)
-library(ROSE)
-library(pROC)
-library(randomForest)
-library(gridExtra)
-library(corrr)
-library(GGally)
-library(fastDummies)
-library(rpart)
-library(cvAUC)
-library(dummies)
-library(colorspace)
-library(caret)
-library("e1071")
-library(datasets)
-library(ggcorrplot)
+
 ```
 
-```{r}
+
+```{r }
+library(readr)
 library(ggplot2)
-library(recipes)
-library(caret)
+library(forecast)
+library(fpp2)
+library(TTR)
 library(dplyr)
-library(outliers)
-library(cluster)
+
 ```
 
+Problem Statement
+Just like every other market is to the sustaing of the economic so is the stock market.Because quiet a number of factors affect the stock market we  want to consider how volatile the nigerian stock market ia and we also forecast the stock market  for a twelve month period.The dat being used was gotten form Nigerian NSE all shares historical data
+ The data contains 2150 rows and 6 variables, as described below:
+
+date - represents the first date of every month starting from January 2012.
+
+OPen - 
+Close - 
+High - 
+Low - 
+Vol. - 
+change -
+
+
 ```{r}
-shares <- read.csv(file.choose(), header = T)
+shares<- read_csv(file.choose())
 shares$Date <- as.Date(shares$Date, format = "%b %d, %Y", abbreviate = TRUE)
-str(shares)
+glimpse(shares)
 View(shares)
-```
-#The dataset contains 2150 observations from 7 variables. The next step is to check for the missing values and prepare the dataset for further treatment
-#The data variable will be displayed as Date Format which can be used for the plot
 
-```
-shares$Date <- as.Date(shares$Date, format =  "%b %d, %Y", abbreviate =TRUE)
-str(shares)
-```
-#Convert the variables to factor
-```{r}
-shares$Open <- as.factor(shares$Open)
-str(shares)
-```
-
-```{r}
-shares$Price <- as.factor(shares$Price)
-str(shares)
-```
-```{r}
-shares$High <- as.factor(shares$High)
-str(shares)
-```
-```{r}
-shares$Low <- as.factor(shares$Low)
-str(shares)
-```
-```{r}
-shares$Vol. <- as.factor(shares$Vol.)
-str(shares)
-```
-```{r}
-shares$Change.. <- as.factor(shares$Change..)
-str(shares)
-```
-
-```{r}
-shares$Price <- as.numeric(shares$Price)
-str(shares)
-```
-
-```{r}
-shares$Low <- as.numeric(shares$Low)
-str(shares)
-```
-
-```{r}
-shares$High <- as.numeric(shares$High)
-str(shares)
-```
-
-```{r}
-shares$Open <- as.numeric(shares$Open)
-str(shares)
 ```
 
 ```{r}
 shares$Vol. <- as.numeric(shares$Vol.)
 str(shares)
+NROW(shares)
 ```
 
 ```{r}
-shares$Change.. <- as.numeric(shares$Change..)
+shares$`Change %` <- as.numeric(shares$`Change %`)
 str(shares)
 ```
 
 #Now that the variables have been converted from character to factor, a summary statistiocs will be carried out to further confirm that
-```{r}
-summary(shares)
-```
-```{r}
-sum(is.na(shares$Date))
-```
-#The summary statistics above is to verify if the dataset has been successfully cleaned. The next step is to check for the correlation
+
+
+
+
 
 ```{r}
-cor(shares$Price, shares$Open)
+glimpse (shares)
+
 ```
 
-```{r}
-cor(shares$Price, shares$High)
-```
+```{}
 
-```{r}
-cor(shares$Price, shares$Low)
-```
-```{r}
-cor(shares$Price, shares$Vol.)
-```
 
-```{r}
-cor(shares$Vol., shares$Change..)
 ```
-
 
 ```{r}
 cor(shares [,2:6])
 ```
-```{r}
-View(shares)
-```
+The correlation between the open,high and low is same as the is same ie the variable have same impact on th analysis, so we are going to use on the price column
 
 ```{r}
-# for daily observation
-shares1 <- ts(shares$Price, frequency = 365, start = 2012, end = 2021)
+# plot of  daily observation
+shares1 <- ts(shares$Price, frequency = 365, start = 2012, end = )
 plot.ts(shares1)
-
+  NROW(shares1)
 ```
 
-
-
 ```{r}
-# for monthly average
-shares2 <- ts(shares$Price, frequency = 12, start = 2012, end = 2021)
+# plot for monthly average
+shares2 <- ts(shares$Price, frequency = 12, start = 2012, end = 2020)
+NROW(shares2)
 plot.ts(shares2)
 
-```
 
-```{r}
-shares1Ts <- shares1
-decomposedRes <- decompose(shares1Ts)
-plot(decomposedRes)
-
-stlRes <- stl(shares1, s.window = "periodic")
-```
-
-```{r}
-shares2Ts <- shares1
-decomposedRes1 <- decompose(shares2Ts, type="additive")
-plot(decomposedRes1)
-```
-differencing approaach removes the linaer trend 
-```{r}
-library("fUnitRoots")
-urkpssTest(shares1, type = c("tau"), lags = c("short"),use.lag = NULL, doplot = TRUE)
-tsstationary = diff(shares1, differences=1)
-plot(tsstationary)
-```
-
-```{r}
-acfShares <- acf(shares1)
-```
-
-# runnuing an acf or pacf is to dertermine which model is best fit for the available dataset
-#Refrence url : https://datascienceplus.com/time-series-analysis-using-arima-model-in-r/#:~:text=arima()%20function%20in%20R,chosen%20by%20minimizing%20the%20AICc.
-```{r}
-acf(tsstationary, lag.max=34)
-pacf(tsstationary, lag.max=34)
-```
-
-```{r}
-arima(shares1)
-```
-
-```{r}
-lag.length = 25
-Box.test(tsstationary, lag=lag.length, type="Ljung-Box")
-```
-
-```{r}
-acf(diff(log(shares1)))
-```
-```{r}
-pacf(diff(log(shares1)))
-```
-
-```{r}
-fitARIMA <- arima(shares1, order=c(1,1,0))
-library(lmtest)
-coeftest(fitARIMA)
-```
-```
-The AR coeficient is statistically siginificant. This explains how the prices deviate from the mean price.
-The z-value can be used to decide if an hypothesis should be accepted or supported
-url:https://online.stat.psu.edu/stat510/book/export/html/665
-```
-
-
-
-```
-Use the predict() function for predictions from the result of the model fitting functions. It takes an argument n.ahead() specifying how many time steps ahead to predict.
-Ref: https://datascienceplus.com/time-series-analysis-using-arima-model-in-r/#:~:text=arima()%20function%20in%20R,chosen%20by%20minimizing%20the%20AICc.
-```
-```{r}
-predict(fitARIMA,n.ahead = 5)
 ```
 
 
 ```{r}
-#Now we will use the forecast function to forecast for future values of the time series
-library(fpp3)
-#futurVal <- forecastML::train_model(fitARIMA,h=10, level=c(99.5))
-plot.forecast(futurVal)
+library(forecast)
+library(MLmetrics)
+```
+```{r}
+NROW(shares1)
 ```
 
 
+```{r}
+#Create samples
+NROW(shares1)
+training<-window(shares1, start = c(2012,1), end = c(2019,12))
+#View(shares1)
+NROW(shares1)
+validation<-window(shares1, start = c(2020, 1))
+#View(training)
+NROW(validation)
+```
+The TBATS model combines several components of the already discussed techniques in this guide, making them a very good choice for forecasting.
+
+It constitutes the following elements:
+
+T: Trigonometric terms for seasonality
+B: Box-Cox transformations for heterogeneity
+A: ARMA errors for short-term dynamics
+T: Trend
+S: Seasonal (including multiple and non-integer periods)
+
+The first line of code below creates the TBATS model and stores it in an object 'tbats_model'. The second line prints the summary and the forecasts for the next selected months.
 
 
 
+```{r}
+tbats_model = tbats(training)
+tbats_forecast = forecast(tbats_model, h=length(validation))
+MAPE(tbats_forecast$mean, validation) * 100
+```
+Naive Forecasting Method
+The simplest forecasting method is to use the most recent observation as the forecast for the next observation. This is called a naive forecast and can be implemented using the 'naive()' function. This method may not be the best forecasting technique, but it often provides a useful benchmark for other, more advanced forecasting methods.
 
+The first line of code below reads in the time series object 'training' and creates the naive forecasting model. The second argument 'h' specifies the number of values you want to forecast which is set to the number of our test cases, in our case. The third  line prints the summary of the model as well as the forecasted value for the next selected months.
+
+
+```{r}
+naive = snaive(training, h=length(validation))
+MAPE(naive$mean, validation) * 100
+summary(naive)
+```
+
+```{r}
+plot(shares1, col="blue", xlab="Year", ylab="Stock Prices", main="Seasonal Naive Forecast", type='l')
+lines(naive$mean, col="red", lwd=2)
+```
+
+```{r}
+arima_optimal = auto.arima(training)
+
+summary(arima_optimal)
+```
+Conclusion
+In this guide, you have learned about several forecasting techniques using 'R'. The performance of the models on the test data is summarized below:
 
 
