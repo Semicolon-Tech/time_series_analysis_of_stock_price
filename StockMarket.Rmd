@@ -1,113 +1,283 @@
----
-title: "stock"
-output: html_document
----
+
+
 ```{r}
-
-```
-
-
-```{r }
-library(readr)
 library(ggplot2)
 library(forecast)
 library(fpp2)
-library(TTR)
 library(dplyr)
+library(TTR)
+library(readr)
+library(timeSeries)
+library(tseries)
 
 ```
-
 Problem Statement
-Just like every other market is to the sustaing of the economic so is the stock market.Because quiet a number of factors affect the stock market we  want to consider how volatile the nigerian stock market ia and we also forecast the stock market  for a twelve month period.The dat being used was gotten form Nigerian NSE all shares historical data
+Just like every other market is to the sustaining of the economic so is the stock market.Because quiet a number of factors affect the stock market we  want to consider how volatile the nigerian stock market is and we also forecast the stock market  for a twelve month period.The data being used was gotten form Nigerian NSE all shares historical data from January 2012 to 0ctober 2012
  The data contains 2150 rows and 6 variables, as described below:
 
 date - represents the first date of every month starting from January 2012.
 
-OPen - 
-Close - 
-High - 
-Low - 
-Vol. - 
-change -
+OPen - Opening stock price for the day
+Close - Closing stock price per day
+High - Hihgest price for the day
+Low - lowest price for the day
+Vol. - Amount of stock traded per day
+change - Difference between opening and closing price
 
 
 ```{r}
-shares<- read_csv(file.choose())
+shares <- read.csv(file.choose(), header = T)
 shares$Date <- as.Date(shares$Date, format = "%b %d, %Y", abbreviate = TRUE)
-glimpse(shares)
+str(shares)
 View(shares)
+```
+#The dataset contains 2150 observations from 7 variables. The next step is to check for the missing values and prepare the dataset for further treatment
+#The date  variable will be displayed as Date Format which can be used for the plot
 
+
+#Convert the variables to factor
+```{r}
+names<- c(2:7)
+shares[,names] <- lapply(shares[,names] ,factor)
+str(shares)
+```
+
+
+```{r}
+shares$Price <- as.numeric(shares$Price)
+str(shares)
+```
+
+```{r}
+shares$Low <- as.numeric(shares$Low)
+str(shares)
+```
+
+```{r}
+shares$High <- as.numeric(shares$High)
+str(shares)
+```
+
+```{r}
+shares$Open <- as.numeric(shares$Open)
+str(shares)
 ```
 
 ```{r}
 shares$Vol. <- as.numeric(shares$Vol.)
 str(shares)
-NROW(shares)
 ```
 
 ```{r}
-shares$`Change %` <- as.numeric(shares$`Change %`)
+shares$Change.. <- as.numeric(shares$Change..)
 str(shares)
 ```
 
 #Now that the variables have been converted from character to factor, a summary statistiocs will be carried out to further confirm that
-
-
-
-
+```{r}
+summary(shares)
+```
+```{r}
+sum(is.na(shares$Date))
+```
+#The summary statistics above is to verify if the dataset has been successfully cleaned. The next step is to check for the correlation
 
 ```{r}
-glimpse (shares)
-
+cor(shares$Price, shares$Open)
 ```
 
-```{}
-
-
+```{r}
+cor(shares$Price, shares$High)
 ```
+
+```{r}
+cor(shares$Price, shares$Low)
+```
+```{r}
+cor(shares$Price, shares$Vol.)
+```
+
+```{r}
+cor(shares$Vol., shares$Change..)
+```
+
 
 ```{r}
 cor(shares [,2:6])
 ```
-The correlation between the open,high and low is same as the is same ie the variable have same impact on th analysis, so we are going to use on the price column
+The correlation between the open,high and low is same as the is same ie the variable have same impact on th analysis, so we are going to uuse on the prce column
+```{r}
+View(shares)
+```
+
+
 
 ```{r}
-# plot of  daily observation
-shares1 <- ts(shares$Price, frequency = 365, start = 2012, end = )
+# for daily observation
+shares1 <- ts(shares$Price, frequency = 365, start = 2012, end = 2021)
 plot.ts(shares1)
-  NROW(shares1)
+
 ```
 
 ```{r}
-# plot for monthly average
-shares2 <- ts(shares$Price, frequency = 12, start = 2012, end = 2020)
-NROW(shares2)
+#making date column your tim index
+library("quantmod")
+#shares3 <- ts(shares1[,2],order.by=as.Date(data[,1]))
+d<-rownames(shares) <- shares$Date
+shares$Date <- NULL
+
+str(shares)
+```
+
+
+```{r}
+# for monthly average
+shares2 <- ts(shares$Price, frequency = 12, start = 2012, end = 2021)
 plot.ts(shares2)
+View(shares2)
+```
+
+```{r}
+shares1Ts <- shares1
+decomposedRes <- decompose(shares1Ts)
+plot(decomposedRes)
+
+stlRes <- stl(shares1, s.window = "periodic")
+```
+These components are defined as follows:
+
+Level: The average value in the series.
+Trend: The increasing or decreasing value in the series.
+Seasonality: The repeating short-term cycle in the series.
+Noise: The random variation in the series.
+```{r}
+shares2Ts <- shares1
+#decomposedRes1 <- decompose(shares2Ts, type="additive")
+#https://machinelearningmastery.com/decompose-time-series-data-trend-seasonality/#:~:text=Time%20series%20decomposition%20involves%20thinking,time%20series%20analysis%20and%20forecasting.
+decomposedRes1 <- decompose(shares2Ts, type="multiplicative")
+plot(decomposedRes1)
+```
+we can see that the trend and observed information extracted from the series is  cyclical in years of the series ,while infromation from the random and seasonality components dose not seem to give a reasonable inference.
+
+
+differencing approaach removes the linaer trend 
+
+
+```{r}
+
+adf.test(shares1)
+#stationary.test(shares1, method = c("kpss"), lag.short = TRUE, output = TRUE)
+```
+we reject the null hypothesis and conclude that our data is is stationary
+
+
+
+
+
+```{r}
+
+
+#want to remove it cos adf is cool
+library("fUnitRoots")
+urkpssTest(shares1, type = c("tau"), lags = c("short"),use.lag = NULL, doplot = TRUE)
+#tsstationary = diff(shares1, differences=1)
+#plot(tsstationary)
+```
+
+```{r}
+acfShares <- acf(shares1)
+```
+
+# runnuing an acf or pacf is to dertermine which model is best fit for the available dataset
+#Refrence url : https://datascienceplus.com/time-series-analysis-using-arima-model-in-r/#:~:text=arima()%20function%20in%20R,chosen%20by%20minimizing%20the%20AICc.
+```{r}
+acf(tsstationary, lag.max=34)
+pacf(tsstationary, lag.max=34)
+```
+
+```{r}
+arima(shares1)
+```
+
+```{r}
+lag.length = 25
+Box.test(tsstationary, lag=lag.length, type="Ljung-Box")
+```
+
+```{r}
+acf(diff(log(shares1)))
+```
+
+```{r}
+pacf(diff(log(shares1)))
+```
+
+```{r}
+fitARIMA <- arima(shares1, order=c(1,1,0))
+library(lmtest)
+coeftest(fitARIMA)
+```
+```
+The AR coeficient is statistically siginificant. This explains how the prices deviate from the mean price.
+The z-value can be used to decide if an hypothesis should be accepted or supported
+url:https://online.stat.psu.edu/stat510/book/export/html/665
+```
+
 
 
 ```
+Use the predict() function for predictions from the result of the model fitting functions. It takes an argument n.ahead() specifying how many time steps ahead to predict.
+Ref: https://datascienceplus.com/time-series-analysis-using-arima-model-in-r/#:~:text=arima()%20function%20in%20R,chosen%20by%20minimizing%20the%20AICc.
+```
+```{r}
+predict(fitARIMA,n.ahead = 5)
+```
+
+
+We will use the built model on a validation set, forecast with it for the duration of the validation set and compare the forecast with the real observations to obtain a Mean Absolute Percentage Error (MAPE)
+
+The mean absolute percentage error, also known as mean absolute percentage deviation, is a measure of prediction accuracy of a forecasting method in statistics, for example in trend estimation, also used as a loss function for regression problems in machine learning
+
+Ref: https://towardsdatascience.com/a-guide-to-forecasting-in-r-6b0c9638c261
 
 
 ```{r}
 library(forecast)
 library(MLmetrics)
-```
-```{r}
-NROW(shares1)
-```
-
-
-```{r}
 #Create samples
-NROW(shares1)
-training<-window(shares1, start = c(2012,1), end = c(2019,12))
-#View(shares1)
-NROW(shares1)
-validation<-window(shares1, start = c(2020, 1))
+freq <- 365
+training=window(shares1, start = c(2012,1), end = c(2019,12), frequency=freq)
+validation=window(shares1, start = c(2019,12), frequency=freq)
+str(training)
+str(validation)
+str(shares1)
 #View(training)
-NROW(validation)
+#View(validation)
 ```
-The TBATS model combines several components of the already discussed techniques in this guide, making them a very good choice for forecasting.
+
+Naive Forecasting Method
+The simplest forecasting method is to use the most recent observation as the forecast for the next observation. This is called a naive forecast and can be implemented using the 'naive()' function. This method may not be the best forecasting technique, but it often provides a useful benchmark for other, more advanced forecasting methods.
+
+The first line of code below reads in the time series object 'training' and creates the naive forecasting model. The second argument 'h' specifies the number of values you want to forecast which is set to the number of our test cases, in our case. The third  line prints the summary of the model as well as the forecasted value for the next selected months.
+
+```{r}
+naive = snaive(training, h=length(validation))
+MAPE(naive$mean, validation) * 100
+summary(naive)
+plot(naive)
+```
+
+```{r}
+plot(shares1, col="blue", xlab="Year", ylab="Stock Prices", main="Seasonal Naive Forecast", type='l')
+lines(naive$mean, col="red", lwd=2)
+View(naive)
+```
+
+
+
+
+
+The TBATS model combines several components of certain techniques in this guide, making them a very good choice for forecasting.
 
 It constitutes the following elements:
 
@@ -120,35 +290,145 @@ S: Seasonal (including multiple and non-integer periods)
 The first line of code below creates the TBATS model and stores it in an object 'tbats_model'. The second line prints the summary and the forecasts for the next selected months.
 
 
-
 ```{r}
 tbats_model = tbats(training)
-tbats_forecast = forecast(tbats_model, h=length(validation))
+tbats_forecast <- forecast(tbats_model, h=length(validation))
 MAPE(tbats_forecast$mean, validation) * 100
+View(tbats_forecast)
 ```
-Naive Forecasting Method
-The simplest forecasting method is to use the most recent observation as the forecast for the next observation. This is called a naive forecast and can be implemented using the 'naive()' function. This method may not be the best forecasting technique, but it often provides a useful benchmark for other, more advanced forecasting methods.
-
-The first line of code below reads in the time series object 'training' and creates the naive forecasting model. The second argument 'h' specifies the number of values you want to forecast which is set to the number of our test cases, in our case. The third  line prints the summary of the model as well as the forecasted value for the next selected months.
-
-
+This tells us how accurate ie our model is 71% accurate(100%-28.97%)
 ```{r}
-naive = snaive(training, h=length(validation))
-MAPE(naive$mean, validation) * 100
-summary(naive)
+plot(tbats_forecast)
 ```
 
 ```{r}
-plot(shares1, col="blue", xlab="Year", ylab="Stock Prices", main="Seasonal Naive Forecast", type='l')
-lines(naive$mean, col="red", lwd=2)
+plot(shares1, col="blue", xlab="Year", ylab="Stock Prices", main="TBATS Model Forecast", type='l')
+#lines(tbats_forecast$mean, col="red", lwd=2)
+lines(tbats_forecast$fitted, col="red", lwd=2)
 ```
+```{r}
+fit <- (tbats_forecast$fitted)
+```
+
+
+
+
+
+
+
+ARIMA FORECASTING
+AEIMA models aim to describe the autocorrelations in the data.
+
+The ‘auto.arima()’ function in 'R' is used to build ARIMA models by using a variation of the Hyndman-Khandakar algorithm, which combines unit root tests, minimisation of the AICc, and MLE to obtain an ARIMA model.
+
+The first line of code below creates the ARIMA model and stores it in an object 'arima_optimal'. The second line prints the summary and the forecasts for the next 12 months.
 
 ```{r}
 arima_optimal = auto.arima(training)
 
 summary(arima_optimal)
 ```
+
+```{r}
+library(astsa)
+sarima_forecast = sarima.for(training, n.ahead=length(validation),
+                              p=2,d=1,q=0)
+#MAPE(sarima_forecast$pred, validation) * 100
+View(sarima_forecast)
+```
+
+```{r}
+plot(shares1, col="blue", xlab="Year", ylab="Stock Prices", main="SARIMA Forecast", type='l')
+lines(sarima_forecast$pred, col="red", lwd=2)
+```
+
+
+
+
+```{r}
+datasize <- length(shares1)
+valsize <- 60
+```
+
+
+
+```{r}
+one_step_ahead_sarima = matrix(ncol=0, nrow = datasize)
+one_step_ahead_sarima[1:(datasize-valsize+i-1)] = shares1[1:(datasize-valsize+i-1)]
+
+for (i in 1:valsize){
+  training_observed = shares1[1:(datasize-valsize+i-1)]
+  forecasted.sarima = sarima.for(training_observed, n.ahead=1, p=2, d=1, q=0)
+  
+  one_step_ahead_sarima[(datasize-valsize+i)] = forecasted.sarima$pred
+}
+MAPE(shares1[(datasize-valsize+1):datasize], one_step_ahead_sarima[(datasize-valsize+1):datasize]) * 100
+```
+
+```{r}
+x <- shares1[(datasize-valsize+1):datasize]
+y <- one_step_ahead_sarima[(datasize-valsize+1):datasize]
+
+str(x)
+str(y)
+str(one_step_ahead_sarima)
+x
+```
+
+```{r}
+plot(x, col="blue", xlab="Year", ylab="Stock Prices", main="SARIMA Forecast", type='l', lwd=1)
+points(y, col="red", type='l', lwd=1)
+```
+
+
+
+
+
+
+
+```{r}
+plot(shares1, col="blue", xlab="Year", ylab="Stock Prices", main="SARIMA Forecast", type='l', lwd=1)
+par(new=TRUE)
+plot((one_step_ahead_sarima), col="red", type='l', lwd=1)
+```
+
+
+```{r}
+one_step_ahead_sarima = matrix(ncol=0, nrow = datasize)
+one_step_ahead_sarima[1:(datasize-valsize+i-1)] = shares1[1:(datasize-valsize+i-1)]
+
+for (i in 1:valsize){
+  training_observed = shares1[1:(datasize-valsize+i-1)]
+  forecasted.sarima = sarima.for(training_observed, n.ahead=1, p=2, d=1, q=0)
+  
+  one_step_ahead_sarima[(datasize-valsize+i)] = forecasted.sarima$pred
+}
+MAPE(shares1[(datasize-valsize+1):datasize], one_step_ahead_sarima[(datasize-valsize+1):datasize]) * 100
+```
+
+```{r}
+x <- shares1[(datasize-valsize+1):datasize]
+y <- tbats_forecast$fitted[(datasize-valsize+1):datasize]
+
+str(x)
+str(y)
+str(tbats_forecast)
+x
+```
+
+```{r}
+plot(x, col="cyan", xlab="Year", ylab="Stock Prices", main="TBATS Forecast", type='l', lwd=2)
+points(y, col="red", type='l', lwd=1)
+```
+
+
+
 Conclusion
 In this guide, you have learned about several forecasting techniques using 'R'. The performance of the models on the test data is summarized below:
+The different models gave us the following MAPE values
+SNAIVE - 33.23
+TBATS Model - 28.97
+SARIMA - 26.65
 
+Based on these values, we can infer that the SARIMA model is more effective in predicting the prices of stocks because it has a lower error percentage/deviation compared to the other models.
 
